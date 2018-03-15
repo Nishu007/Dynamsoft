@@ -1,0 +1,95 @@
+<html>
+<head>
+	<title>Scan Documents with Python</title>
+	<script src="{{url_for('Resources', filename='dynamsoft.webtwain.initiate.js')}}"></script>
+	<script src="{{url_for('Resources', filename='dynamsoft.webtwain.config.js')}}"></script>
+	<style>
+		h1 {
+			font-size: 2em;
+			font-weight: bold;
+			color: #777777;
+			text-align: center
+		}
+		table {
+			margin: auto;
+		}
+	</style>
+</head>
+<body>
+	<h1>
+		Scan Documents with Python
+	</h1>
+	<table>
+		<tr>
+		<td><div id="dwtcontrolContainer"></div>
+		</td>
+		</tr>
+		<tr>
+		<td>
+			<input type="button" value="Load Image" onclick="btnLoad_onclick();" />
+			<input type="button" value="Scan Image" onclick="AcquireImage();" />
+			<input id="btnUpload" type="button" value="Upload Image" onclick="btnUpload_onclick()">
+		</td>
+		</tr>
+	</table>
+
+	<!--Custom script goes here-->
+	<script type="text/javascript">
+		Dynamsoft.WebTwainEnv.RegisterEvent('OnWebTwainReady', Dynamsoft_OnReady);
+		var DWObject;
+		function Dynamsoft_OnReady() {
+			DWObject = Dynamsoft.WebTwainEnv.GetWebTwain('dwtcontrolContainer');
+		}
+
+		function btnLoad_onclick() {
+			var OnSuccess = function() {};
+			var OnFailure = function(errorCode, errorString) {};
+			DWObject.IfShowFileDialog = true;
+			DWObject.LoadImageEx("", EnumDWT_ImageType.IT_ALL, OnSuccess, OnFailure);
+		}
+
+		function AcquireImage() {
+			if (DWObject) {
+				var bSelected = DWObject.SelectSource();
+				if (bSelected) {
+					var OnAcquireImageSuccess, OnAcquireImageFailure;
+					OnAcquireImageSuccess = OnAcquireImageFailure = function () {
+						DWObject.CloseSource();
+					};
+
+					DWObject.OpenSource();
+					DWObject.IfDisableSourceAfterAcquire = true;  //Scanner source will be disabled/closed automatically after the scan.
+					DWObject.AcquireImage(OnAcquireImageSuccess, OnAcquireImageFailure);
+				}
+			}
+		}
+
+		function btnUpload_onclick() {
+			var strHTTPServer = location.hostname;
+			DWObject.IfSSL = Dynamsoft.Lib.detect.ssl;
+			var _strPort = location.port == "" ? 80 : location.port;
+			if (Dynamsoft.Lib.detect.ssl == true)
+				_strPort = location.port == "" ? 443 : location.port;
+			DWObject.HTTPPort = _strPort;
+			var CurrentPathName = unescape(location.pathname); // get current PathName in plain ASCII
+			var CurrentPath = CurrentPathName.substring(0, CurrentPathName.lastIndexOf("/") + 1);
+			var strActionPage = CurrentPath + "upload";
+			var sFun = function(){
+				alert('successfully uploaded a file');
+			}, fFun = function(){
+				alert('failed to upload!');
+			};
+			var Digital = new Date();
+			var uploadfilename = Digital.getMilliseconds();
+			DWObject.HTTPUploadThroughPost(
+				strHTTPServer,
+				DWObject.CurrentImageIndexInBuffer,
+				strActionPage,
+				uploadfilename + ".jpg",
+				sFun, fFun
+			);
+		}
+	</script>
+</body>
+
+</html>
